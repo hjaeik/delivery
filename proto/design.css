@@ -1,0 +1,105 @@
+body {
+    overflow-y:;
+    overflow-x:hidden;
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    text-align: center;
+    padding: 8px;
+    border-bottom:1px solid rgba(242, 242, 242, 0.9);
+
+}
+
+tr:nth-child(odd) {
+    background-color: rgba(242, 242, 242, 0.2);
+}
+.sequence{
+    width:5%;
+}
+.name{
+    width:15%;
+}
+.addr{
+    width:41%;
+    padding-bottom:3px;
+}
+.tel{
+    width:15%;
+}
+.hideButton{
+    width:10%;
+}
+.deleteButton{
+    width:10%;
+}
+p {
+    margin: 0;
+    text-align: left;
+}
+.input {
+    font-size: 1px;
+}
+.output {
+    font-size: 20px;
+}
+
+input[type=text]{
+    border-width: 0 0 2px 0;
+    border-radius:0px;
+    margin: 8px 0;
+    outline:none;
+    padding:8px;
+    box-sizing: border-box;
+    transition: .3s;
+}
+input[type=text]:focus{
+    border-color:dodgerBlue;
+    box-shadow:0 0 8px 0 dodgerBlue;
+}
+
+
+input[type=button]{
+    background-color: #555555; /* Green */
+    border-width: 0;
+    margin: 8px 0;
+    color: white;
+    padding:8px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+}
+input[type=button]:active{
+    background-color: #555555;
+    opacity: 0.4;
+    box-shadow: 0 5px #666;
+    transform: translateY(4px);
+}
+.start{
+    background-color: #2E9AFE;
+}
+.end{
+    background-color: #FE2E64;
+}
+.start:active{
+    opacity: 0.4;
+    box-shadow: 0 5px #666;
+    transform: translateY(4px);
+}
+.end:active{
+    opacity: 0.4;
+    box-shadow: 0 5px #666;
+    transform: translateY(4px);
+}
+.fixed{
+    position:fixed;
+}
+.research{
+    top: 70%;
+    width: 100%;
+    position: absolute;
+}

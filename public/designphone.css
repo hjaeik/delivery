@@ -1,0 +1,127 @@
+body {
+    overflow-y:;
+    overflow-x:hidden;
+}
+::-webkit-scrollbar {
+    width: 0px;  /* remove scrollbar space */
+    background: transparent;  /* optional: just make scrollbar invisible */
+}
+table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13px;
+}
+#result td,#startResult td,#endResult td {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+th, td {
+    text-align: center;
+    border-bottom:1px solid rgba(242, 242, 242, 0.9);
+    white-space: nowrap;
+    overflow-x:scroll;
+}
+tr {
+    height: 500%;
+}
+tr:nth-child(odd) {
+    background-color: rgba(242, 242, 242, 0.2);
+}
+.sequence{
+    width:5%;
+}
+.name{
+    width:15%;
+}
+.addr{
+    width:41%;
+}
+.tel{
+    width:15%;
+}
+.hideButton{
+    width:10%;
+}
+.deleteButton{
+    width:10%;
+}
+p {
+    margin: 0;
+    text-align: left;
+}
+.input {
+    font-size: 5px;
+}
+.output {
+    font-size: 15px;
+    font-weight: bold;
+}
+
+input[type=text]{
+    border-left: 1px solid rgba(242, 242, 242, 0.9);
+    border-right: 1px solid rgba(242, 242, 242, 0.9);
+    border-top: 0;
+    border-bottom: 0;
+    border-radius:0px;
+    margin: 0;
+    outline:none;
+    padding:11px;
+    box-sizing: border-box;
+    transition: .3s;
+}
+input[type=text]:focus{
+    border-color:dodgerBlue;
+    box-shadow:0 0 8px 0 dodgerBlue;
+}
+
+
+input[type=button]{
+    background-color: #555555; /* Green */
+    border-width: 0;
+    margin: 8px 0;
+    color: white;
+    padding:10px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
+input[type=button]:active{
+    background-color: #555555;
+    opacity: 0.4;
+    box-shadow: 0 5px #666;
+    transform: translateY(4px);
+}
+.start{
+    background-color: #2E9AFE;
+}
+.end{
+    background-color: #FE2E64;
+}
+.start:active{
+    opacity: 0.4;
+    box-shadow: 0 5px #666;
+    transform: translateY(4px);
+}
+.end:active{
+    opacity: 0.4;
+    box-shadow: 0 5px #666;
+    transform: translateY(4px);
+}
+.fixed{
+    position:fixed;
+}
+.research{
+    top: 70%;
+    width: 100%;
+    position: absolute;
+}
+.icon{
+    transition: .3s;
+    max-height: 50px;
+    max-width: 50px;
+}
+.icon:active{
+    opacity: 0.4;
+    transform: translateY(2px);
+    transform: translateX(2px);
+}

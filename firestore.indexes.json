@@ -1,0 +1,19 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "startLayer",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "jaeik116",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "jinho116",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

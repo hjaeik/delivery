@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <title>Title</title>
+</head>
+<!--Custom Css-->
+<link rel="stylesheet" href="design.css">
+
+<!--TMAP API-->
+
+<script src="https://api2.sktelecom.com/tmap/js?version=1&format=javascript&appKey=93923042-f12d-4630-97ee-7aaf92816312"></script>
+<!--KAKAO API-->
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=a45494093826c6a603692c5c71d25c86&libraries=services"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"
+        integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+        crossorigin="anonymous"></script>
+<body>
+
+<div id="map_div" style="position:fixed; z-index : 10">
+</div>
+<div style="position:fixed; z-index : 11; width:70%; margin-left:20%;">
+    <input id="change" class="wayPoint" style="background-color: #555555;"name="1" style="width:5%" type="button" value="경유지">
+    <input id="name" style="width:10%" type="text" placeholder="이름">
+    <input id="addr" style="width:40%" type="text" placeholder="주소지">
+    <input id="tel" style="width:10%" type="text" placeholder="연락처">
+    <input id="register" style="width:8%" type="button" value="등록">
+    <input id="findMe" style="width:8%" type="button" value="내위치">
+</div>
+<div style="position:fixed; z-index: 12; right: 1%">
+    <input id="explore" type="hidden" value="경로탐색">
+</div>
+
+<div class="research">
+    <table>
+        <tbody id="startResult" style="background-color: rgba(46, 154 ,254, 0.4)"></tbody>
+        <tbody id="result">
+        </tbody>
+        <tbody id="endResult" style="background-color: rgba(254, 46, 100, 0.4)"></tbody>
+    </table>
+</div>
+
+</body>
+<!--geo-->
+<script type="text/javascript">
+    $(document).ready(function() {
+        var skMarkerLayer, startMarkerLayer, endMarkerLayer, myMarkerLayer, routeLayer, pointLayer;
+        var skMarker, startMarker, endMarker, myMarker;
+        var startData = [];
+        var endData = [];
+        var data = [];
+        var browserWidth = window.innerWidth;
+        var browswerHeighth = window.innerHeight;
+        var map = new Tmap.Map({
+            div:'map_div',
+            width : browserWidth,
+            height : browswerHeighth*0.7,
+        });
+
+        skMarkerLayer = new Tmap.Layer.Markers();
+        startMarkerLayer = new Tmap.Layer.Markers();
+        endMarkerLayer = new Tmap.Layer.Markers();
+        myMarkerLayer = new Tmap.Layer.Markers();
+        routeLayer = new Tmap.Layer.Vector("route");
+        pointLayer = new Tmap.Layer.Vector("point");
+        map.addLayer(pointLayer);
+        map.addLayer(routeLayer);
+        map.addLayer(skMarkerLayer);
+        map.addLayer(startMarkerLayer);
+        map.addLayer(endMarkerLayer);
+        map.addLayer(myMarkerLayer);
+        map.setCenter(new Tmap.LonLat("126.986072", "37.570028").transform("EPSG:4326", "EPSG:3857"), 15);
+
+        var change = ["start","wayPoint","end"];
+        var changeVal = ["출발지","경유지","종착지"];
+        var changeStyle = ["#2E9AFE","#555555","#FE2E64"];
+        $("#change").on("click", function() {
+            $this = $(this);
+            var num = ($this.attr("name") + 1)%3;
+            $this.attr("name", num);
+            $this.attr("class", change[num]);
+            $this.val(changeVal[num]);
+            $this.css("background-color",changeStyle[num]);
+        });
+        $("#register").on("click", function () {
+            var changeName = $("#change").attr("name");
+            var $name = $("#name").val();
+            var $addr = $("#addr").val();
+            var $tel = ($("#tel").val().length == 0 ? "none" : $("#tel").val() );
+            var geocoder = new daum.maps.services.Geocoder();
+            var lat, lng, kakaoAddr;
+
+            var callback = function(result, status){
+                if (status === daum.maps.services.Status.OK) {
+                    kakaoAddr = result[0].address_name;
+                    lat = result[0].y;
+                    lng = result[0].x;
+                    for(var i = 0; i <data.length; i++){
+                        if(data[i].lat == lat && data[i].lng == lng) {
+                            alert("duplicate");
+                            return;
+                        }
+                    }
+                    var lonlat = new Tmap.LonLat(lng, lat).transform("EPSG:4326", "EPSG:3857");
+                    switch (changeName) {
+                        case '0':
+                            console.log("0 ::")
+                            if(startMarker != null){
+                                startMarkerLayer.removeMarker(startMarker);
+                            }
+                            startData=[];
+                            startData.push({
+                                name:$name,
+                                inputaddr:$addr,
+                                outputaddr:kakaoAddr,
+                                lat: lat,
+                                lng: lng,
+                                tel:$tel,
+                                hide: false,
+                                seq: data.length,
+                                lonlat: lonlat});
+                            var ele = "";
+                            ele += '<tr>\n' +
+                                '        <td class="sequence"><strong>출발</strong></td>\n' +
+                                '        <td class="name">'+$name+'</td>\n' +
+                                '        <td class="addr">\n' +
+                                '            <p class="input">&nbsp'+$addr+'</p>\n' +
+                                '            <p class="output">'+kakaoAddr+'</p>\n' +
+                                '        </td>\n' +
+                                '        <td class="tel">'+$tel+'</td>\n' +
+                                '        <td class="hideButton">숨기기</td>\n' +
+                                '        <td class="deleteButton">삭제</td>\n' +
+                                '        <input type="hidden" class="lat" value='+lat+'>\n' +
+                                '        <input type="hidden" class="lng" value='+lng+'>\n' +
+                                '    </tr>';
+                            $("#startResult").html(ele);
+                            var size = new Tmap.Size(24, 38);
+                            var offset = new Tmap.Pixel(-(size.w/2),-(size.h));
+                            var icon = new Tmap.Icon('http://tmapapis.sktelecom.com/upload/tmap/marker/pin_r_m_s.png',size, offset);//아이콘 설정
+
+                            startMarker = new Tmap.Marker(lonlat, icon);//마커 생성
+                            startMarkerLayer.addMarker(startMarker); //마커 레이어에 마커 추가
+
+                            break;
+                        case '1':
+                            console.log("1 ::")
+                            data.push({ name:$name,
+                                inputaddr:$addr,
+                                outputaddr:kakaoAddr,
+                                lat: lat,
+                                lng: lng,
+                                tel:$tel,
+                                hide: false,
+                                lonlat: lonlat});
+
+                            var ele = "";
+                            for(var i = 0; i <data.length; i++){
+                                ele += '<tr>\n' +
+                                    '        <td class="sequence"><strong>'+(i+1)+'</strong></td>\n' +
+                                    '        <td class="name">'+data[i].name+'</td>\n' +
+                                    '        <td class="addr">\n' +
+                                    '            <p class="input">&nbsp'+data[i].inputaddr+'</p>\n' +
+                                    '            <p class="output">'+data[i].outputaddr+'</p>\n' +
+                                    '        </td>\n' +
+                                    '        <td class="tel">'+data[i].tel+'</td>\n' +
+                                    '        <td class="hideButton">숨기기</td>\n' +
+                                    '        <td class="deleteButton">삭제</td>\n' +
+                                    '        <input type="hidden" class="lat" value='+data[i].lat+'>\n' +
+                                    '        <input type="hidden" class="lng" value='+data[i].lng+'>\n' +
+                                    '    </tr>';
+                            }
+                            $("#result").html(ele);
+                            var size = new Tmap.Size(24, 38);
+                            var offset = new Tmap.Pixel(-(size.w/2),-(size.h));
+                            var icon = new Tmap.Icon('https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld='+data.length+'|2E64FE|FFFFFF',size, offset);//아이콘 설정
+
+                            skMarker = new Tmap.Marker(lonlat, icon);//마커 생성
+                            skMarkerLayer.addMarker(skMarker); //마커 레이어에 마커 추가
+                            break;
+                        case '2':
+                            console.log("2 ::")
+                            if(endMarker != null){
+                                endMarkerLayer.removeMarker(endMarker);
+                            }
+                            endData=[];
+                            endData.push({
+                                name:$name,
+                                inputaddr:$addr,
+                                outputaddr:kakaoAddr,
+                                lat: lat,
+                                lng: lng,
+                                tel:$tel,
+                                hide: false,
+                                lonlat: lonlat});
+                            var ele = "";
+                            ele += '<tr>\n' +
+                                '        <td class="sequence"><strong>도착</strong></td>\n' +
+                                '        <td class="name">'+$name+'</td>\n' +
+                                '        <td class="addr">\n' +
+                                '            <p class="input">&nbsp'+$addr+'</p>\n' +
+                                '            <p class="output">'+kakaoAddr+'</p>\n' +
+                                '        </td>\n' +
+                                '        <td class="tel">'+$tel+'</td>\n' +
+                                '        <td class="hideButton">숨기기</td>\n' +
+                                '        <td class="deleteButton">삭제</td>\n' +
+                                '        <input type="hidden" class="lat" value='+lat+'>\n' +
+                                '        <input type="hidden" class="lng" value='+lng+'>\n' +
+                                '    </tr>';
+                            $("#endResult").html(ele);
+                            var size = new Tmap.Size(24, 38);
+                            var offset = new Tmap.Pixel(-(size.w/2),-(size.h));
+                            var icon = new Tmap.Icon('http://tmapapis.sktelecom.com/upload/tmap/marker/pin_r_m_e.png',size, offset);//아이콘 설정
+
+                            endMarker = new Tmap.Marker(lonlat, icon);//마커 생성
+                            endMarkerLayer.addMarker(endMarker); //마커 레이어에 마커 추가
+                            break;
+                    }
+                    map.setCenter(lonlat, 15);
+                } else {
+                    alert("존재하지 않는 주소지 입니다. 다시 입력해주세요");
+                }
+            }
+            if($name.length != 0 && $addr.length != 0){
+                geocoder.addressSearch($addr,callback);
+            } else {
+                alert("주소, 성명을 모두 입력해 주세요");
+            }
+        })
+        function updateMarker(lat, lon) {
+            map.removeLayer(skMarkerLayer);
+            skMarkerLayer = new Tmap.Layer.Markers();
+            map.addLayer(skMarkerLayer);
+            for(var i = 0; i < data.length; i++){
+                $("#result tr:eq("+i+") .sequence").html("<td class='sequence'><strong>"+(i+1)+"</strong></td>");
+                if(!data[i].hide){
+                    var size = new Tmap.Size(24, 38);
+                    var offset = new Tmap.Pixel(-(size.w/2),-(size.h));
+                    var icon = new Tmap.Icon('https://chart.googleapis.com/chart?chst=d_map_pin_letter&chld='+(i+1)+'|2E64FE|FFFFFF',size, offset);//아이콘 설정
+                    skMarker = new Tmap.Marker(data[i].lonlat, icon);
+                    skMarkerLayer.addMarker(skMarker);;
+                }
+            }
+            map.setCenter(new Tmap.LonLat(lon, lat).transform("EPSG:4326", "EPSG:3857"), 15);
+        }
+        $(document).on("click", "#result .hideButton", function(){
+            var $this = $(this);
+            var $name = $this.prevAll('.name').text();
+            var $lng = $this.nextAll('.lng').val();
+            var $lat = $this.nextAll('.lat').val();
+            for(var i = 0; i < data.length; i++){
+                if($lat == data[i].lat && $lng == data[i].lng && $name == data[i].name) {
+                    data[i].hide = true;
+                    break;
+                }
+            }
+            $this.attr("class","revealButton");
+            $this.text("해제");
+            $this.closest('tr').css("color", "rgba(112, 128, 144, 0.5)");
+            updateMarker($lat, $lng);
+        });
+        $(document).on("click", "#result .revealButton", function(){
+            var $this = $(this);
+            var $name = $this.prevAll('.name').text();
+            var $lng = $this.nextAll('.lng').val();
+            var $lat = $this.nextAll('.lat').val();
+            for(var i = 0; i < data.length; i++){
+                if($lat == data[i].lat && $lng == data[i].lng && $name == data[i].name) {
+                    data[i].hide = false;
+                    break;
+                }
+            }
+            $this.attr("class","hideButton");
+            $this.text("숨기기");
+            $this.closest('tr').removeAttr("style");
+            updateMarker($lat, $lng);
+        });
+        $(document).on("click", "#result .deleteButton", function() {
+            console.log("삭제버튼 누름")
+            var $this = $(this);
+            var $name = $this.prevAll('.name').text();
+            var $lng = $this.nextAll('.lng').val();
+            var $lat = $this.nextAll('.lat').val();
+            for(var i = 0; i < data.length; i++){
+                if($lat == data[i].lat && $lng == data[i].lng && $name == data[i].name) {
+                    data.splice(i,1);
+                    break;
+                }
+            }
+            $(this).closest('tr').remove();
+            updateMarker(data, $lat, $lng);
+        });
+        $(document).on("click", "#startResult .hideButton", function(){
+            var $this = $(this);
+            startMarkerLayer.removeMarker(startMarker);
+            $this.attr("class","revealButton");
+            $this.text("해제");
+            $this.closest("tr").css("color","46, 154 ,254, 0.2");
+        });
+        $(document).on("click", "#startResult .revealButton", function(){
+            var $this = $(this);
+            startMarkerLayer.addMarker(startMarker);
+            $this.attr("class","hideButton");
+            $this.text("숨기기");
+            $this.closest("tr").css("color","46, 154 ,254, 0.4");
+        });
+        $(document).on("click", "#startResult .deleteButton", function(){
+            startMarkerLayer.removeMarker(startMarker);
+            startMarker=[];
+            $(this).closest("tr").remove();
+        })
+        $(document).on("click", "#endResult .hideButton", function(){
+            var $this = $(this);
+            endMarkerLayer.removeMarker(endMarker);
+            $this.attr("class","revealButton");
+            $this.text("해제");
+            $this.closest("tr").css("color","46, 154 ,254, 0.2");
+        });
+        $(document).on("click", "#endResult .revealButton", function(){
+            var $this = $(this);
+            endMarkerLayer.addMarker(endMarker);
+            $this.attr("class","hideButton");
+            $this.text("숨기기");
+            $this.closest("tr").css("color","46, 154 ,254, 0.4");
+        });
+        $(document).on("click", "#endResult .deleteButton", function(){
+            endMarkerLayer.removeMarker(endMarker);
+            endMarker=[];
+            $(this).closest("tr").remove();
+        });
+        $(document).on("click", "table tr", function(){
+            console.log('click');
+            var $this = $(this);
+            var $lng = $this.children('.lng').val();
+            var $lat = $this.children('.lat').val();
+            map.setCenter(new Tmap.LonLat($lng, $lat).transform("EPSG:4326", "EPSG:3857"), 15);
+        })
+
+
+        function getLocation() {
+            if (navigator.geolocation) { // GPS를 지원하면
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    var size = new Tmap.Size(38, 38);
+                    var offset = new Tmap.Pixel(-(size.w/2),-(size.h));
+                    var icon = new Tmap.Icon('icon.png',size, offset);//아이콘 설정
+                    var lonlat = new Tmap.LonLat(position.coords.longitude, position.coords.latitude).transform("EPSG:4326", "EPSG:3857");
+                    myMarker = new Tmap.Marker(lonlat,icon);
+                    myMarkerLayer.addMarker(myMarker);
+                    map.setCenter(lonlat, 15);
+                }, function(error) {
+                    console.error(error);
+                }, {
+                    enableHighAccuracy: false,
+                    maximumAge: 0,
+                    timeout: Infinity
+                });
+            } else {
+                alert('GPS를 지원하지 않습니다');
+            }
+        }
+        $("#findMe").on("click", function(){
+            if(myMarker == null){
+                getLocation();
+            } else {
+                myMarkerLayer.removeMarker(myMarker);
+                myMarker=null;
+            }
+        })
+
+        function optimization() {
+            var prtcl;
+            var headers = {};
+            var viaPoints = [];
+            var Time = new Date();
+            var startTime = Time.getFullYear() + calcMonth(Time.getMonth()+1) + Time.getDate() + Time.getHours() + Time.getMinutes();
+
+            routeLayer = new Tmap.Layer.Vector("route");
+            map.addLayer(routeLayer);
+            for(var i = 0; i < data.length; i++){
+                if(data[i].hide == false) {
+                    viaPoints.push({
+                        "viaPointId": data[i].name,
+                        "viaPointName": data[i].name,
+                        "viaX": data[i].lng,
+                        "viaY": data[i].lat,
+                        "viaTime": 600
+                    });
+                }
+            }
+            headers["appKey"]="93923042-f12d-4630-97ee-7aaf92816312";
+            console.log("start",startData);
+            console.log("data", data);
+            console.log("end", endData);
+            console.log(viaPoints);
+            console.log(JSON.stringify({
+                "reqCoordType": "WGS84GEO",
+                "resCoordType" : "EPSG3857",
+                "startName": "출발",
+                "startX": startData[0].lng,
+                "startY": startData[0].lat,
+                "startTime": startTime,
+                "endName": "도착",
+                "endX": endData[0].lng,
+                "endY": endData[0].lat,
+                "searchOption" : "0",
+                "viaPoints": viaPoints
+            }));
+
+            $.ajax({
+                type:"POST",
+                headers : headers,
+                url:"https://api2.sktelecom.com/tmap/routes/routeOptimization10?version=1&format=xml",//
+                async:false,
+                contentType: "application/json",
+                data: JSON.stringify({
+                    "reqCoordType": "WGS84GEO",
+                    "resCoordType" : "EPSG3857",
+                    "startName": "출발",
+                    "startX": startData[0].lng,
+                    "startY": startData[0].lat,
+                    "startTime": startTime,
+                    "endName": "도착",
+                    "endX": endData[0].lng,
+                    "endY": endData[0].lat,
+                    "searchOption" : "0",
+                    "viaPoints": viaPoints
+                }),
+                success:function(response){
+                    prtcl = response;
+                    // 5. 경유지 최적화 결과 Line 그리기
+                    //경유지 최적화 결과 POINT 찍기
+                    /* -------------- Geometry.Point -------------- */
+
+                    pointLayer = new Tmap.Layer.Vector("point");
+                    var prtclString = new XMLSerializer().serializeToString(prtcl);//xml to String
+                    xmlDoc = $.parseXML( prtclString ),
+                        $xml = $( xmlDoc ),
+                        $intRate = $xml.find("Placemark");
+                    var style_red = {
+                        fillColor:"#FF0000",
+                        fillOpacity:0.2,
+                        strokeColor: "#FF0000",
+                        strokeWidth: 3,
+                        strokeDashstyle: "solid",
+                        pointRadius: 2,
+                        title: "this is a red line"
+                    };
+                    $intRate.each(function(index, element) {
+                        var nodeType = element.getElementsByTagName("tmap:nodeType")[0].childNodes[0].nodeValue;
+                        if(nodeType == "POINT"){
+                            var point = element.getElementsByTagName("coordinates")[0].childNodes[0].nodeValue.split(',');
+                            var geoPoint =new Tmap.Geometry.Point(point[0],point[1]);
+                            var pointFeature = new Tmap.Feature.Vector(geoPoint, null, style_red);
+                            pointLayer.addFeatures([pointFeature]);
+                        }
+                    });
+                    map.addLayer(pointLayer);
+                    /* -------------- Geometry.Point -------------- */
+                    //경유지 최적화 결과 Line 그리기
+                    routeLayer.style ={
+                        fillColor:"#FF0000",
+                        fillOpacity:0.2,
+                        strokeColor: "#FF0000",
+                        strokeWidth: 3,
+                        strokeDashstyle: "solid",
+                        pointRadius: 2,
+                        title: "this is a red line"
+                    }
+                    var kmlForm = new Tmap.Format.KML().read(prtcl);
+                    routeLayer.addFeatures(kmlForm);
+
+
+                    // 6. 경유지 최적화 결과 반경만큼 지도 레벨 조정
+                    map.zoomToExtent(routeLayer.getDataExtent());
+
+                },
+                error:function(request,status,error){
+                    console.log("code:"+request.status+"\n"+"message:"+request.responseText+"\n"+"error:"+error);
+                }
+            });
+        }
+        $(document).on("click", "body", function () {
+            if(startData != null && data != null && endData != null){
+                $("#explore").attr("type","button");
+            } else {
+                $("#explore").attr("type","hidden");
+            }
+        })
+        function calcMonth(month){
+            var zero = month.toString();
+            if(zero.length == 1) {
+                zero = "0" + month.toString()
+            }
+            return zero;
+        }
+        $("#explore").on("click", function() {
+            if(confirm("현재 총 "+ data.length +"개의 경유지를 입력했습니다\n경로 탐색을 진행하시겠습니까?\n(경로탐색은 1일 1회만 가능합니다.)") == true){
+                map.removeLayer(pointLayer);
+                map.removeLayer(routeLayer);
+                optimization();
+            } else {
+
+            }
+        })
+    });
+
+</script>
+</html>
